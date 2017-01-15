@@ -34,6 +34,7 @@ build/
 tests/report/
 private/
 settings.*
+*.db
 
 # =========================
 # Operating System Files
