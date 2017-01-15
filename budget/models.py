@@ -15,8 +15,8 @@ class MerchantCategoryCode(models.Model):
 class Account(TimeStampedModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
 
-    account_id = models.CharField(max_lenght=255)
-    account_type = models.CharField(max_lenght=255)
+    account_id = models.CharField(max_length=255)
+    account_type = models.CharField(max_length=255)
     branch_id = models.CharField(max_length=255, blank=True)
     curdef = models.CharField(max_length=10)
     institution = models.CharField(max_length=255)
@@ -51,6 +51,9 @@ class Category(TimeStampedModel):
     parent = models.ForeignKey('self', blank = True, null = True, related_name = 'children')
     mcc = models.ForeignKey(MerchantCategoryCode, blank=True, null=True)
     
+    class Meta:
+        verbose_name_plural = "categories"
+
 class Budget(TimeStampedModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.CharField(max_length=255)
@@ -60,6 +63,9 @@ class Budget(TimeStampedModel):
 class BudgetItemStatus(models.Model):
     message = models.CharField(max_length=255)
 
+    class Meta:
+        verbose_name_plural = 'budget item statuses'
+        
 class BudgetReserve(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     title = models.CharField

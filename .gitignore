@@ -36,6 +36,7 @@ private/
 settings.*
 *.db
 *.sqlite3
+migrations/
 
 # =========================
 # Operating System Files
