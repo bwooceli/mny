@@ -34,14 +34,9 @@ class MerchantCategoryCode(models.Model):
     mcc_irs_description = models.TextField(max_length=255, blank=True)
     mcc_reportable = models.TextField(max_length=255, blank=True)
 
-class Category(TimeStampedModel):
-    name = models.CharField(max_length=255)
-    parent = models.ForeignKey('self', blank = True, null = True, related_name = 'children')
-    mcc = models.ForeignKey(MerchantCategoryCode, blank=True, null=True)
-
 class Account(TimeStampedModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
-    
+
     account_id = models.CharField(max_lenght=255)
     account_type = models.CharField(max_lenght=255)
     branch_id = models.CharField(max_length=255, blank=True)
@@ -51,25 +46,8 @@ class Account(TimeStampedModel):
     routing_number = models.CharField(max_length=55)
     acctype = models.IntegerField()
 
-class Budget(TimeStampedModel):
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
-    name = models.CharField(max_length=255)
-
-    account = models.ForeignKey(Account)
-
-class BudgetItemStatus(models.Model):
-    message = models.CharField(max_length=255)
-
-class BudgetItem(TimeStampedModel):
-    payee = models.CharField(max_length=255)
-    projected_date = models.DateField(blank=True)
-    category = models.ForeignKey(Category)
-
-    amount = CurrencyField()
-
-    notes = models.CharField(max_length=255)
-
-    status = models.ForeignKey(BudgetItemStatus)
+    class Meta:
+        unique_together = (('owner', 'account_id'),)
 
 class Transaction(TimeStampedModel):
     account = models.ForeignKey(Account)
@@ -88,7 +66,43 @@ class Transaction(TimeStampedModel):
     t_amount = models.CurrencyField()
 
     post_order = models.IntegerField()    
+
+
+class Category(TimeStampedModel):
+    name = models.CharField(max_length=255)
+    parent = models.ForeignKey('self', blank = True, null = True, related_name = 'children')
+    mcc = models.ForeignKey(MerchantCategoryCode, blank=True, null=True)
     
+class Budget(TimeStampedModel):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    name = models.CharField(max_length=255)
+
+    account = models.ForeignKey(Account)
+
+class BudgetItemStatus(models.Model):
+    message = models.CharField(max_length=255)
+
+class BudgetReserve(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    title = models.CharField
+
+class PayeeXref(models.Model):
+    name = models.CharField(max_length=255)
+    transaction = models.ManyToManyField(Transaction)
+
+class BudgetItem(TimeStampedModel):
+    budget = models.ForeignKey(Budget)
+    payee = models.ForeignKey(PayeeXref, blank=True, null=True)
+    budget_item_date = models.DateField(help_text='Projected date for allocation', blank=True)
+    reserve = models.ForeignKey(BudgetReserve, blank=True)
+    category = models.ForeignKey(Category)
+
+    amount = CurrencyField()
+
+    notes = models.CharField(max_length=255)
+
+    status = models.ForeignKey(BudgetItemStatus)
+
 
 class TransactionAllocation(models.Model):
     transaction = models.ForeignKey(Transaction)
