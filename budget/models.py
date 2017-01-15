@@ -4,28 +4,6 @@ from django.conf import settings
 from simple_history.models import HistoricalRecords
 from django_extensions.db.models import (TitleSlugDescriptionModel, TimeStampedModel)
 
-
-class CurrencyField(models.DecimalField):
-    __metaclass__ = models.SubfieldBase
-
-    def __init__(self, verbose_name=None, name=None, **kwargs):
-        decimal_places = kwargs.pop('decimal_places', 2)
-        max_digits = kwargs.pop('max_digits', 10)
-
-        super(CurrencyField, self). __init__(
-            verbose_name = verbose_name, 
-            name = name, 
-            max_digits = max_digits,
-            decimal_places = decimal_places, 
-            **kwargs
-        )
-
-    def to_python(self, value):
-        try:
-            return super(CurrencyField, self).to_python(value).quantize(Decimal("0.01"))
-        except AttributeError:
-            return None
-
 #will need to initialize codes with from ofxparse.mcc import codes
 class MerchantCategoryCode(models.Model):
     mcc_id = models.IntegerField
@@ -63,7 +41,7 @@ class Transaction(TimeStampedModel):
     t_mcc = models.IntegerField(blank=True, null=True)
     t_sic = models.IntegerField(blank=True, null=True)
 
-    t_amount = models.CurrencyField()
+    t_amount = models.DecimalField(max_digits=8, decimal_places=2)
 
     post_order = models.IntegerField()    
 
@@ -97,7 +75,7 @@ class BudgetItem(TimeStampedModel):
     reserve = models.ForeignKey(BudgetReserve, blank=True)
     category = models.ForeignKey(Category)
 
-    amount = CurrencyField()
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
 
     notes = models.CharField(max_length=255)
 
@@ -106,5 +84,5 @@ class BudgetItem(TimeStampedModel):
 
 class TransactionAllocation(models.Model):
     transaction = models.ForeignKey(Transaction)
-    amount = models.CurrencyField()
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
     budget_item = models.ForeignKey(BudgetItem)
