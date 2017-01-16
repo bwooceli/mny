@@ -5,26 +5,20 @@
         body {
         padding-top: 50px;
         }
-        .starter-template {
+        .generic-content {
         padding: 40px 15px;
         }        
 </style>
 {% endblock %} 
 
 {% block content %}
-<div class="starter-template">
+<div class="generic-content">
         
         {% if user.is_authenticated %}
-        <h2>{{ user.first_name }} is killin it</h2>
+        <h2>{% if user.first_name %}{{ user.first_name }}{% else %}{{ user }}{% endif %} is winning</h2>
         {% else %}
         <h1>Adulting can be hard.</h1>
         {% endif %}
         
-        
-        <ul>
-                <li>Win at Money.</li>
-                <li>Win at Cars.</li>
-                <li>Win at Fitness.</li>
-        </ul>
 </div>
 {% endblock %}

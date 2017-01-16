@@ -35,7 +35,7 @@ tests/report/
 private/
 settings.*
 *.db
-*.sqlite3
+*.sqlite3*
 migrations/
 
 # =========================
