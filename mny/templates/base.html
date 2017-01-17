@@ -54,8 +54,8 @@
             <li><a href="#">Dashboard</a></li>
             <li><a href="#">Settings</a></li> 
             <li><a href="#">Profile</a></li>
-            <li><a href="/logout/?next=/">Logout</a></li>
-            {% else %}<li><a href="/login/?next=/">Log In</a></li>{% endif %}
+            <li><a href="{% url 'logout' %}?next=/">Logout</a></li>
+            {% else %}<li><a href="{% url 'login' %}?next=/">Log In</a></li>{% endif %}
           </ul>
         </div>
       </div>

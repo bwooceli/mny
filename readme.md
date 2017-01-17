@@ -5,3 +5,4 @@
 * ofxparse
 * django_extensions
 * django-simple-history
+* dateutil

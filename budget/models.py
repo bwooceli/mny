@@ -10,7 +10,7 @@ from django_extensions.db.models import (TitleSlugDescriptionModel, TimeStampedM
 
 #will need to initialize codes with from ofxparse.mcc import codes
 class MerchantCategoryCode(models.Model):
-    mcc_id = models.IntegerField()
+    mcc_id = models.IntegerField(primary_key=True)
     mcc_combined_description = models.TextField(max_length=255, blank=True)
     mcc_usda_description = models.TextField(max_length=255, blank=True)
     mcc_irs_description = models.TextField(max_length=255, blank=True)
@@ -27,7 +27,7 @@ def mcc_init():
     from ofxparse.mcc import codes
     for code, value in codes.items():
         m = MerchantCategoryCode.objects.get_or_create(
-            mcc_id = code,
+            mcc_id = int(code),
             mcc_combined_description = codes[code].get('combined description'),
             mcc_usda_description = codes[code].get('USDA description'),
             mcc_irs_description = codes[code].get('IRS Description'),
@@ -37,6 +37,9 @@ def mcc_init():
 class AccountType(models.Model):
     account_type = models.IntegerField(primary_key=True)
     description = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return '%s: %s' % (self.account_type, self.description)
 
 class Account(TimeStampedModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
@@ -76,6 +79,9 @@ class Transaction(TimeStampedModel):
 
     previous_trans = models.OneToOneField('self', related_name = 'posted_next', blank=True, null=True, on_delete=models.SET_NULL)
     next_trans = models.OneToOneField('self', related_name = 'posted_previous', blank=True, null=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return '%s\t%s\t%s' % (self.t_tdate, self.t_payee, self.t_amount)
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=255)
@@ -144,7 +150,6 @@ class BudgetItem(TimeStampedModel):
         self.budget_item_enddate = r
         self.save()
         
-
 class TransactionAllocation(models.Model):
     transaction = models.ForeignKey(Transaction)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
