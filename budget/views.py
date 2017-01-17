@@ -18,7 +18,6 @@ def ofx_processer(ofxfile, u):
     new_accounts = []
     
     for ofa in ofx.accounts:
-        print(ofa.type)
         actype = AccountType.objects.get_or_create(
                 account_type = int(ofa.type),
                 description = ofa.account_type
@@ -48,16 +47,17 @@ def ofx_processer(ofxfile, u):
 
     for tr in ofx.account.statement.transactions:
         if not prev_t:
-            prev_t = Transaction.objects.filter(t_tdate__lt=tr.tdate).order_by('-t_tdate')
+            prev_t = Transaction.objects.filter(t_tdate__lt=tr.date).order_by('-t_tdate')
             if prev_t:
                 prev_t = prev_t[0]
             else:
                 prev_t = None
 
+        print(tr.amount)
         t = Transaction.objects.get_or_create(
             account = a,
 
-            t_tdate = tr.tdate,
+            t_tdate = tr.date,
             t_id = tr.id,
             t_type = tr.type,
 
@@ -65,11 +65,13 @@ def ofx_processer(ofxfile, u):
             t_memo = tr.memo,
             t_checknum = tr.checknum,
 
-            t_mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc)),
             t_sic = tr.sic,
-            t_amount = tr.amount
+            t_amount = float(tr.amount)
         )
-
+        try:
+            t_mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
+        except:
+            pass
         #Set previous and next relationships
         if p:
             t.previous_trans = p
