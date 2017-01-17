@@ -34,21 +34,29 @@ def mcc_init():
             mcc_reportable = codes[code].get('Reportable under 6041/6041A and Authority for Exception')
         )
 
+class AccountType(models.Model):
+    account_type = models.IntegerField(primary_key=True)
+    description = models.CharField(max_length=50, blank=True)
 
 class Account(TimeStampedModel):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
 
-    account_id = models.CharField(max_length=255)
-    account_type = models.CharField(max_length=255)
+    number = models.CharField(max_length=255)
+    routing_number = models.CharField(max_length=55)
+    
+    account_type = models.ForeignKey(AccountType)
+    
     branch_id = models.CharField(max_length=255, blank=True)
     curdef = models.CharField(max_length=10)
     institution = models.CharField(max_length=255)
-    number = models.CharField(max_length=255)
-    routing_number = models.CharField(max_length=55)
-    acctype = models.IntegerField()
+
+    statement_start_date = models.DateTimeField(blank=True, null=True)
+    statement_end_date = models.DateTimeField(blank=True, null=True)
+    statement_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    statement_available_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
 
     class Meta:
-        unique_together = (('owner', 'account_id'),)
+        unique_together = (('owner', 'number'),)
 
 class Transaction(TimeStampedModel):
     account = models.ForeignKey(Account)
@@ -66,8 +74,8 @@ class Transaction(TimeStampedModel):
 
     t_amount = models.DecimalField(max_digits=8, decimal_places=2)
 
-    post_order = models.IntegerField()    
-
+    previous_trans = models.OneToOneField('self', related_name = 'posted_next', blank=True, null=True, on_delete=models.SET_NULL)
+    next_trans = models.OneToOneField('self', related_name = 'posted_previous', blank=True, null=True, on_delete=models.SET_NULL)
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=255)
