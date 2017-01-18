@@ -3,8 +3,10 @@
 {% block content %}
 <div class="generic-content">
   <form action="/budget/ofx_upload/" class="navbar-form" method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="form-group">
     {{ form }}
-    <input type="submit" value="Submit" />
+    </div>
+    <input type="submit" value="Submit" class="btn btn-default" />
   </form>
   
   {% if processed.new_accounts %}
@@ -14,9 +16,23 @@
   {% endfor %}
   {% endif %}
 
+  {% if processed.updated_accounts %}
+  <h2>Updated Accounts</h2>
+  {% for account in processed.updated_accounts %}
+  <p>Updated {{ account }}</p>
+  {% endfor %}
+  {% endif %}
+
   {% if processed.new_transactions %}
   <h2>Added Transactions</h2>
   {% for transaction in processed.new_transactions %}
+  <p>{{ transaction }}</p>
+  {% endfor %}
+  {% endif %}
+
+  {% if processed.updated_transactions %}
+  <h2>Updated Transactions</h2>
+  {% for transaction in processed.updated_transactions %}
   <p>{{ transaction }}</p>
   {% endfor %}
   {% endif %}

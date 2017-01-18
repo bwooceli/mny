@@ -14,8 +14,11 @@ def ofx_processer(ofxfile, u):
     with ofxfile as fileobj:
         ofx = OfxParser.parse(fileobj)
     
-    new_transactions = []
-    new_accounts = []
+    ofx_results={}
+    ofx_results['new_transactions'] = []
+    ofx_results['updated_transactions'] = []
+    ofx_results['new_accounts'] = []
+    ofx_results['updated_accounts'] = []
     
     for ofa in ofx.accounts:
         actype = AccountType.objects.get_or_create(
@@ -33,7 +36,9 @@ def ofx_processer(ofxfile, u):
         )
         
         if a[1]:
-            new_accounts.append(a[0])
+            ofx_results['new_accounts'].append(a[0])
+        else:
+            ofx_results['updated_accounts'].append(a[0])
         a = a[0]
 
         a.statement_start_date = ofx.account.statement.start_date 
@@ -45,19 +50,22 @@ def ofx_processer(ofxfile, u):
         prev_t = None
         next_t = None
 
-        for tr in ofx.account.statement.transactions:
-            if not prev_t:
-                prev_t = Transaction.objects.filter(date__lt=tr.date).order_by('-date')
-                if prev_t:
-                    prev_t = prev_t[0]
-                else:
-                    prev_t = None
+        first_t = Transaction.objects.all().order_by('date','order')[0]
 
+        transactions = ofx.account.statement.transactions
+        transactions.reverse()
+        for tr in ofx.account.statement.transactions:
+            tr.date = tr.date.replace(hour=0)
             t_obj = Transaction.objects.get_or_create(
                 account = a,
                 date = tr.date,
                 number = tr.id
             )
+            if t_obj[1]:
+                ofx_results['new_transactions'].append(t_obj[0])
+            else:
+                ofx_results['updated_transactions'].append(t_obj[0])
+            
             t = t_obj[0]
             t.transaction_type = tr.type
 
@@ -75,19 +83,20 @@ def ofx_processer(ofxfile, u):
                 t.mcc = mcc
             except:
                 pass
-            #Set previous and next relationships
-            if prev_t:
-                t.previous_trans = prev_t
-                prev_t.next_trans = t
-                prev_t.save()
+            #Set previous and next relationships as well as the OrderedModed order
+            if not prev_t:
+                if t.date < first_t.date:
+                    t.above(first_t)
+                prev_t = Transaction.objects.filter(date__lt=t.date).order_by('-date', '-order')
+                if prev_t:
+                    prev_t = prev_t[0]
+                    t.below(prev_t)
+                else:
+                    prev_t = None
             t.save()
             prev_t = t
-            new_transactions.append(t)
-
-    return {
-        'new_transactions': new_transactions,
-        'new_accounts': new_accounts
-    }
+            
+    return ofx_results
 
 @login_required
 def ofx_upload_view(request):

@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from simple_history.models import HistoricalRecords
 from django_extensions.db.models import (TitleSlugDescriptionModel, TimeStampedModel)
 
+from ordered_model.models import OrderedModel
 
 
 #will need to initialize codes with from ofxparse.mcc import codes
@@ -26,13 +27,13 @@ class MerchantCategoryCode(models.Model):
 def mcc_init():
     from ofxparse.mcc import codes
     for code, value in codes.items():
-        m = MerchantCategoryCode.objects.get_or_create(
-            mcc_id = int(code),
-            mcc_combined_description = codes[code].get('combined description'),
-            mcc_usda_description = codes[code].get('USDA description'),
-            mcc_irs_description = codes[code].get('IRS Description'),
-            mcc_reportable = codes[code].get('Reportable under 6041/6041A and Authority for Exception')
-        )
+        m = MerchantCategoryCode.objects.get_or_create(mcc_id = int(code))
+        if m[1]:
+            m[0].mcc_combined_description = codes[code].get('combined description'),
+            m[0].mcc_usda_description = codes[code].get('USDA description'),
+            m[0].mcc_irs_description = codes[code].get('IRS Description'),
+            m[0].mcc_reportable = codes[code].get('Reportable under 6041/6041A and Authority for Exception')
+            m[0].save()
 
 class AccountType(models.Model):
     account_type = models.IntegerField(primary_key=True)
@@ -66,7 +67,7 @@ class Account(TimeStampedModel):
     def __str__(self):
         return '%s %s %s (%s)' % (self.owner, self.number, self.nickname, self.account_type.description)
 
-class Transaction(TimeStampedModel):
+class Transaction(TimeStampedModel, OrderedModel):
     account = models.ForeignKey(Account)
 
     date = models.DateTimeField()
@@ -82,8 +83,10 @@ class Transaction(TimeStampedModel):
 
     amount = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
-    previous_trans = models.OneToOneField('self', related_name = 'posted_next', blank=True, null=True, on_delete=models.SET_NULL)
-    next_trans = models.OneToOneField('self', related_name = 'posted_previous', blank=True, null=True, on_delete=models.SET_NULL)
+    order_with_respect_to = 'account'
+
+    class Meta(OrderedModel.Meta):
+        pass
 
     def __str__(self):
         return '%s\t%s\t%s' % (self.date, self.payee, self.amount)
@@ -132,7 +135,9 @@ class BudgetItem(TimeStampedModel):
     
     budget_item_date = models.DateTimeField(help_text='Projected date for allocation', blank=True)
     budget_item_enddate = models.DateTimeField(help_text='If a ranged budget item, provide an end date', blank=True)
-    
+
+    enforce_due_date = models.BooleanField(help_text='Rigid scheduling of budget item date in cashflow')
+
     reserve = models.ForeignKey(BudgetReserve, blank=True)
     category = models.ForeignKey(Category)
 
