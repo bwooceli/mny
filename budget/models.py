@@ -58,30 +58,35 @@ class Account(TimeStampedModel):
     statement_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
     statement_available_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
 
+    nickname = models.CharField(max_length=50, blank=True)
+
     class Meta:
         unique_together = (('owner', 'number'),)
+
+    def __str__(self):
+        return '%s %s %s (%s)' % (self.owner, self.number, self.nickname, self.account_type.description)
 
 class Transaction(TimeStampedModel):
     account = models.ForeignKey(Account)
 
-    t_tdate = models.DateTimeField()
-    t_id = models.CharField(max_length=255)
-    t_type = models.CharField(max_length=10, blank=True)
+    date = models.DateTimeField()
+    number = models.CharField(max_length=255)
+    transaction_type = models.CharField(max_length=10, blank=True)
 
-    t_payee = models.CharField(max_length=255)
-    t_memo = models.CharField(max_length=255, blank=True)
-    t_checknum = models.IntegerField(blank=True, null=True)
+    payee = models.CharField(max_length=255, blank=True)
+    memo = models.CharField(max_length=255, blank=True)
+    checknum = models.IntegerField(blank=True, null=True)
 
-    t_mcc = models.IntegerField(blank=True, null=True)
-    t_sic = models.IntegerField(blank=True, null=True)
+    mcc = models.IntegerField(blank=True, null=True)
+    sic = models.IntegerField(blank=True, null=True)
 
-    t_amount = models.DecimalField(max_digits=8, decimal_places=2)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
 
     previous_trans = models.OneToOneField('self', related_name = 'posted_next', blank=True, null=True, on_delete=models.SET_NULL)
     next_trans = models.OneToOneField('self', related_name = 'posted_previous', blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return '%s\t%s\t%s' % (self.t_tdate, self.t_payee, self.t_amount)
+        return '%s\t%s\t%s' % (self.date, self.payee, self.amount)
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=255)

@@ -32,54 +32,57 @@ def ofx_processer(ofxfile, u):
             institution = str(ofa.institution)
         )
         
-        new_accounts.append(a)
-    
-    a = Account.objects.get(owner = u, number = ofx.account.number)
+        if a[1]:
+            new_accounts.append(a[0])
+        a = a[0]
 
-    a.statement_start_date = ofx.account.statement.start_date 
-    a.statement_end_date = ofx.account.statement.end_date
-    a.statement_balance = ofx.account.statement.balance 
-    a.statement_available_balance = ofx.account.statement.available_balance
-    a.save()
+        a.statement_start_date = ofx.account.statement.start_date 
+        a.statement_end_date = ofx.account.statement.end_date
+        a.statement_balance = ofx.account.statement.balance 
+        a.statement_available_balance = ofx.account.statement.available_balance
+        a.save()
 
-    prev_t = None
-    next_t = None
+        prev_t = None
+        next_t = None
 
-    for tr in ofx.account.statement.transactions:
-        if not prev_t:
-            prev_t = Transaction.objects.filter(t_tdate__lt=tr.date).order_by('-t_tdate')
+        for tr in ofx.account.statement.transactions:
+            if not prev_t:
+                prev_t = Transaction.objects.filter(date__lt=tr.date).order_by('-date')
+                if prev_t:
+                    prev_t = prev_t[0]
+                else:
+                    prev_t = None
+
+            t_obj = Transaction.objects.get_or_create(
+                account = a,
+                date = tr.date,
+                number = tr.id
+            )
+            t = t_obj[0]
+            t.transaction_type = tr.type
+
+            t.payee = tr.payee
+            t.memo = tr.memo
+            if tr.checknum == '':
+                tr.checknum = None
+            t.checknum = tr.checknum
+
+            t.sic = tr.sic
+            t.amount = tr.amount
+            
+            try:
+                mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
+                t.mcc = mcc
+            except:
+                pass
+            #Set previous and next relationships
             if prev_t:
-                prev_t = prev_t[0]
-            else:
-                prev_t = None
-
-        print(tr.amount)
-        t = Transaction.objects.get_or_create(
-            account = a,
-
-            t_tdate = tr.date,
-            t_id = tr.id,
-            t_type = tr.type,
-
-            t_payee = tr.payee,
-            t_memo = tr.memo,
-            t_checknum = tr.checknum,
-
-            t_sic = tr.sic,
-            t_amount = float(tr.amount)
-        )
-        try:
-            t_mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
-        except:
-            pass
-        #Set previous and next relationships
-        if p:
-            t.previous_trans = p
-            p.next_trans = t
-            p.save()
-        t.save()
-        p = t
-        new_transactions.append(t)
+                t.previous_trans = prev_t
+                prev_t.next_trans = t
+                prev_t.save()
+            t.save()
+            prev_t = t
+            new_transactions.append(t)
 
     return {
         'new_transactions': new_transactions,
