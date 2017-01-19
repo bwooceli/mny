@@ -60,8 +60,6 @@ class Account(TimeStampedModel):
     curdef = models.CharField(max_length=10)
     institution = models.CharField(max_length=255)
 
-    first_balance_date = models.DateTimeField(blank=True, null=True)
-    first_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
     current_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
 
     statement_start_date = models.DateTimeField(blank=True, null=True)
@@ -84,14 +82,12 @@ class Account(TimeStampedModel):
 
     @property
     def formatted_current_balance(self):
-        return '%s%s' % (intcomma(int(self.current_balance)), ("%0.2f" % self.current_balance)[-3:])
-
-    def update_current_balance(self):
-        self.current_balance = self.transaction_set.all().aggregate(Sum('amount'))['amount__sum'] + self.first_balance
-        self.save()
+        if self.current_balance:
+            return '%s%s' % (intcomma(int(self.current_balance)), ("%0.2f" % self.current_balance)[-3:])
+        return '0.00'
 
     def __str__(self):
-        return '%s %s %s-%s ($%s)' % (self.owner, self.number, self.nickname, self.account_type.description, self.formatted_current_balance)
+        return '%s %s %s %s: $%s' % (self.owner, self.number, self.nickname, self.account_type.description, self.formatted_current_balance)
 
     
 

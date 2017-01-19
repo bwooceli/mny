@@ -35,10 +35,7 @@ def ofx_processer(ofxfile, u):
             a[0].first_balance_date = ofx.account.statement.start_date.replace(hour=0) 
 
             if a[1]:
-                a[0].last_balance = a[0].statement_balance
-                a[0].first_balance = a[0].statement_balance
-                for transaction in ofx.account.statement.transactions:
-                    a[0].first_balance -= transaction.amount
+                a[0].current_balance = a[0].statement_balance
 
         if a[1]:
             ofx_results['new_accounts'].append(a[0])
@@ -84,6 +81,9 @@ def ofx_processer(ofxfile, u):
             t.sic = tr.sic
             t.amount = tr.amount
             
+            if not t_obj[1] and not a[1]:
+                a[0].current_balance += (t.amount + (t.amount-tr.amount))
+
             try:
                 mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
                 t.mcc = mcc
@@ -111,6 +111,5 @@ def ofx_processer(ofxfile, u):
                 prev_t = None
             t.save()
             prev_t = t
-        if not a[1]:
-            a[0].update_current_balance()
+
     return ofx_results
