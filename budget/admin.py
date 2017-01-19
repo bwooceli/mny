@@ -8,7 +8,7 @@ from budget.models import *
 #Transaction Admin
 class TransactionAdmin(OrderedModelAdmin):
     #list_display = ('date', 'payee','memo', 'amount','order', 'move_up_down_links')
-    list_display = ('date', 'payee','memo', 'amount')
+    list_display = ('date', 'payee','memo', 'amount', 'order')
 
 admin.site.register(Transaction, TransactionAdmin)
 

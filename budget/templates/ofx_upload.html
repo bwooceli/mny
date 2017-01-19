@@ -8,30 +8,35 @@
     </div>
     <input type="submit" value="Submit" class="btn btn-default" />
   </form>
+
+  <h2>Summary</h2>
+  <p>Accounts: {{ processed.new_accounts|length }} New, {{ processed.updated_accounts|length }} Updated</p>
+  <p>Transactions: {{ processed.new_transactions|length }} New, {{ processed.updated_transactions|length }} Updated</p>
   
+
   {% if processed.new_accounts %}
-  <h2>Added Accounts</h2>
+  <h3>Added Accounts</h3>
   {% for account in processed.new_accounts %}
   <p>Added {{ account }}</p>
   {% endfor %}
   {% endif %}
 
   {% if processed.updated_accounts %}
-  <h2>Updated Accounts</h2>
+  <h3>Updated Accounts</h3>
   {% for account in processed.updated_accounts %}
   <p>Updated {{ account }}</p>
   {% endfor %}
   {% endif %}
 
   {% if processed.new_transactions %}
-  <h2>Added Transactions</h2>
+  <h3>Added Transactions</h3>
   {% for transaction in processed.new_transactions %}
   <p>{{ transaction }}</p>
   {% endfor %}
   {% endif %}
 
   {% if processed.updated_transactions %}
-  <h2>Updated Transactions</h2>
+  <h3>Updated Transactions</h3>
   {% for transaction in processed.updated_transactions %}
   <p>{{ transaction }}</p>
   {% endfor %}

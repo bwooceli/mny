@@ -1,4 +1,7 @@
 from django.db import models
+from django.db.models import Sum, Avg, Min, Max, StdDev, Variance, F, FloatField
+#price_per_page=Sum(F('price')/F('pages'), output_field=FloatField()))
+
 from django.conf import settings
 
 from dateutil.relativedelta import relativedelta
@@ -7,6 +10,9 @@ from simple_history.models import HistoricalRecords
 from django_extensions.db.models import (TitleSlugDescriptionModel, TimeStampedModel)
 
 from ordered_model.models import OrderedModel
+
+from django.contrib.humanize.templatetags.humanize import intcomma
+
 
 
 #will need to initialize codes with from ofxparse.mcc import codes
@@ -54,6 +60,10 @@ class Account(TimeStampedModel):
     curdef = models.CharField(max_length=10)
     institution = models.CharField(max_length=255)
 
+    first_balance_date = models.DateTimeField(blank=True, null=True)
+    first_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    current_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+
     statement_start_date = models.DateTimeField(blank=True, null=True)
     statement_end_date = models.DateTimeField(blank=True, null=True)
     statement_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
@@ -64,8 +74,26 @@ class Account(TimeStampedModel):
     class Meta:
         unique_together = (('owner', 'number'),)
 
+    @property
+    def formatted_statement_balance(self):
+        return '%s%s' % (intcomma(int(self.statement_balance)), ("%0.2f" % self.statement_balance)[-3:])
+
+    @property
+    def formatted_statement_available_balance(self):
+        return '%s%s' % (intcomma(int(self.statement_balance)), ("%0.2f" % self.statement_balance)[-3:])
+
+    @property
+    def formatted_current_balance(self):
+        return '%s%s' % (intcomma(int(self.current_balance)), ("%0.2f" % self.current_balance)[-3:])
+
+    def update_current_balance(self):
+        self.current_balance = self.transaction_set.all().aggregate(Sum('amount'))['amount__sum'] + self.first_balance
+        self.save()
+
     def __str__(self):
-        return '%s %s %s (%s)' % (self.owner, self.number, self.nickname, self.account_type.description)
+        return '%s %s %s-%s ($%s)' % (self.owner, self.number, self.nickname, self.account_type.description, self.formatted_current_balance)
+
+    
 
 class Transaction(TimeStampedModel, OrderedModel):
     account = models.ForeignKey(Account)
