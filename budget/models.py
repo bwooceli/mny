@@ -1,8 +1,8 @@
 from django.db import models
 from django.db.models import Sum, Avg, Min, Max, StdDev, Variance, F, FloatField
-#price_per_page=Sum(F('price')/F('pages'), output_field=FloatField()))
-
 from django.conf import settings
+from django.contrib.humanize.templatetags.humanize import intcomma
+
 
 from dateutil.relativedelta import relativedelta
 
@@ -12,8 +12,10 @@ from django_extensions.db.models import (
 
 from ordered_model.models import OrderedModel
 
-from django.contrib.humanize.templatetags.humanize import intcomma
 
+
+
+#price_per_page=Sum(F('price')/F('pages'), output_field=FloatField()))
 
 
 #will need to initialize codes with from ofxparse.mcc import codes
@@ -65,6 +67,7 @@ class Account(TimeStampedModel):
 
     current_balance = models.DecimalField(
         max_digits=8, decimal_places=2, null=True)
+    current_balance_date = models.DateTimeField(blank=True, null=True)
 
     statement_start_date = models.DateTimeField(blank=True, null=True)
     statement_end_date = models.DateTimeField(blank=True, null=True)

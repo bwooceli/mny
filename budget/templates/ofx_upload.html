@@ -9,10 +9,11 @@
     <input type="submit" value="Submit" class="btn btn-default" />
   </form>
 
+  {% if processed %}
   <h2>Summary</h2>
   <p>Accounts: {{ processed.new_accounts|length }} New, {{ processed.updated_accounts|length }} Updated</p>
   <p>Transactions: {{ processed.new_transactions|length }} New, {{ processed.updated_transactions|length }} Updated</p>
-  
+  {% endif %}
 
   {% if processed.new_accounts %}
   <h3>Added Accounts</h3>

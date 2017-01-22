@@ -2,11 +2,11 @@ from ofxparse import OfxParser
 from .models import *
 
 def ofx_processer(ofxfile, u):
-'''Given an ofxfile object 'ofxfile' from an upload (temporary file), and 
-a User object 'u', it will get_or_create the user account and 
-returns dict ofx_results with ['new_transactions'], ['updated_transactions],
-['new_accounts'], and ['updated_accounts'] 
-'''
+    '''Given an ofxfile object 'ofxfile' from an upload (temporary file), and 
+    a User object 'u', it will get_or_create the user account and 
+    returns dict ofx_results with ['new_transactions'], ['updated_transactions],
+    ['new_accounts'], and ['updated_accounts']'''
+
     with ofxfile as fileobj:
         ofx = OfxParser.parse(fileobj)
     
@@ -42,6 +42,7 @@ returns dict ofx_results with ['new_transactions'], ['updated_transactions],
 
             if a[1]:
                 a[0].current_balance = a[0].statement_balance
+                a[0].current_balance_date = a[0].statement_end_date
 
         if a[1]:
             ofx_results['new_accounts'].append(a[0])
@@ -92,13 +93,13 @@ returns dict ofx_results with ['new_transactions'], ['updated_transactions],
             #if the transaction is updated and the account isn't new, adjust
             #the balance by any difference in the original transaciton record
             if not t_obj[1] and not a[1]:
-                a[0].current_balance += (t.amount-tr.amount))
-
+                a[0].current_balance += (t.amount-tr.amount)
+                
             #if the transaction is new, but the account is not, adjust the
             #balance by the transaction amount
-            if t_obj[1] and not a[1]:
+            if t_obj[1] and tr.date >= a[0].current_balance_date and not a[1]:
                 a[0].current_balance += t.amount
-
+                a[0].current_balance_date = t.date
 
             try:
                 mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
@@ -130,6 +131,6 @@ returns dict ofx_results with ['new_transactions'], ['updated_transactions],
                 prev_t = None
             t.save()
             prev_t = t
-
+        
         a[0].save()
     return ofx_results
