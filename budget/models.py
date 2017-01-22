@@ -7,7 +7,8 @@ from django.conf import settings
 from dateutil.relativedelta import relativedelta
 
 from simple_history.models import HistoricalRecords
-from django_extensions.db.models import (TitleSlugDescriptionModel, TimeStampedModel)
+from django_extensions.db.models import (
+    TitleSlugDescriptionModel, TimeStampedModel)
 
 from ordered_model.models import OrderedModel
 
@@ -35,10 +36,12 @@ def mcc_init():
     for code, value in codes.items():
         m = MerchantCategoryCode.objects.get_or_create(mcc_id = int(code))
         if m[1]:
-            m[0].mcc_combined_description = codes[code].get('combined description'),
+            m[0].mcc_combined_description = codes[code].get(
+                'combined description'),
             m[0].mcc_usda_description = codes[code].get('USDA description'),
             m[0].mcc_irs_description = codes[code].get('IRS Description'),
-            m[0].mcc_reportable = codes[code].get('Reportable under 6041/6041A and Authority for Exception')
+            m[0].mcc_reportable = codes[code].get(
+                'Reportable under 6041/6041A and Authority for Exception')
             m[0].save()
 
 class AccountType(models.Model):
@@ -60,12 +63,15 @@ class Account(TimeStampedModel):
     curdef = models.CharField(max_length=10)
     institution = models.CharField(max_length=255)
 
-    current_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    current_balance = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True)
 
     statement_start_date = models.DateTimeField(blank=True, null=True)
     statement_end_date = models.DateTimeField(blank=True, null=True)
-    statement_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
-    statement_available_balance = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    statement_balance = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True)
+    statement_available_balance = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True)
 
     nickname = models.CharField(max_length=50, blank=True)
 
@@ -74,20 +80,31 @@ class Account(TimeStampedModel):
 
     @property
     def formatted_statement_balance(self):
-        return '%s%s' % (intcomma(int(self.statement_balance)), ("%0.2f" % self.statement_balance)[-3:])
+        return '%s%s' % (
+            intcomma(int(self.statement_balance)), 
+            ("%0.2f" % self.statement_balance)[-3:])
 
     @property
     def formatted_statement_available_balance(self):
-        return '%s%s' % (intcomma(int(self.statement_balance)), ("%0.2f" % self.statement_balance)[-3:])
+        return '%s%s' % (
+            intcomma(int(self.statement_balance)), 
+            ("%0.2f" % self.statement_balance)[-3:])
 
     @property
     def formatted_current_balance(self):
         if self.current_balance:
-            return '%s%s' % (intcomma(int(self.current_balance)), ("%0.2f" % self.current_balance)[-3:])
+            return '%s%s' % (
+                intcomma(int(self.current_balance)), 
+                ("%0.2f" % self.current_balance)[-3:])
         return '0.00'
 
     def __str__(self):
-        return '%s %s %s %s: $%s' % (self.owner, self.number, self.nickname, self.account_type.description, self.formatted_current_balance)
+        return '%s %s %s %s: $%s' % (
+            self.owner, 
+            self.number, 
+            self.nickname, 
+            self.account_type.description, 
+            self.formatted_current_balance)
 
     
 
@@ -105,7 +122,8 @@ class Transaction(TimeStampedModel, OrderedModel):
     mcc = models.IntegerField(blank=True, null=True)
     sic = models.IntegerField(blank=True, null=True)
 
-    amount = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    amount = models.DecimalField(
+        max_digits=8, decimal_places=2, blank=True, null=True)
 
     order_with_respect_to = 'account'
 
@@ -117,7 +135,8 @@ class Transaction(TimeStampedModel, OrderedModel):
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=255)
-    parent = models.ForeignKey('self', blank = True, null = True, related_name = 'children')
+    parent = models.ForeignKey(
+        'self', blank = True, null = True, related_name = 'children')
     mcc = models.ForeignKey(MerchantCategoryCode, blank=True, null=True)
     
     class Meta:
@@ -150,17 +169,21 @@ class BudgetReserve(models.Model):
     budget = models.ForeignKey(Budget)
     
     title = models.CharField(max_length=255)
-    target_amount = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    target_amount = models.DecimalField(
+        max_digits=8, decimal_places=2, blank=True, null=True)
 
 
 class BudgetItem(TimeStampedModel):
     budget = models.ForeignKey(Budget)
     payee = models.ForeignKey(PayeeXref, blank=True, null=True)
     
-    budget_item_date = models.DateTimeField(help_text='Projected date for allocation', blank=True)
-    budget_item_enddate = models.DateTimeField(help_text='If a ranged budget item, provide an end date', blank=True)
+    budget_item_date = models.DateTimeField(
+        help_text='Projected date for allocation', blank=True)
+    budget_item_enddate = models.DateTimeField(
+        help_text='If a ranged budget item, provide an end date', blank=True)
 
-    enforce_due_date = models.BooleanField(help_text='Rigid scheduling of budget item date in cashflow')
+    enforce_due_date = models.BooleanField(
+        help_text='Rigid scheduling of budget item date in cashflow')
 
     reserve = models.ForeignKey(BudgetReserve, blank=True)
     category = models.ForeignKey(Category)
@@ -172,7 +195,8 @@ class BudgetItem(TimeStampedModel):
     status = models.ForeignKey(BudgetItemStatus)
 
     def enddate_offset(self, *args, **kwargs):
-        '''Pass offset_days, offset_months, and offset_years as arguments to set the range end'''
+        '''Pass offset_days, offset_months, and offset_years as 
+        arguments to set the range end'''
         r = self.budget_item_date
         r = ( r  
             + relativedelta(days=kwargs.get('offset_days') or 0) 

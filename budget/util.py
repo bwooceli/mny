@@ -2,6 +2,11 @@ from ofxparse import OfxParser
 from .models import *
 
 def ofx_processer(ofxfile, u):
+'''Given an ofxfile object 'ofxfile' from an upload (temporary file), and 
+a User object 'u', it will get_or_create the user account and 
+returns dict ofx_results with ['new_transactions'], ['updated_transactions],
+['new_accounts'], and ['updated_accounts'] 
+'''
     with ofxfile as fileobj:
         ofx = OfxParser.parse(fileobj)
     
@@ -26,13 +31,14 @@ def ofx_processer(ofxfile, u):
             institution = str(ofa.institution)
         )
         
-        #update the statement details if they are newer than what's in the database
-        if a[1] or a[0].statement_end_date < ofx.account.statement.end_date:
-            a[0].statement_start_date = ofx.account.statement.start_date.replace(hour=0) 
-            a[0].statement_end_date = ofx.account.statement.end_date.replace(hour=0)
-            a[0].statement_balance = ofx.account.statement.balance 
-            a[0].statement_available_balance = ofx.account.statement.available_balance
-            a[0].first_balance_date = ofx.account.statement.start_date.replace(hour=0) 
+        #update the statement details if they are newer than valie in database
+        s = ofx.account.statement
+        if a[1] or a[0].statement_end_date < s.end_date:
+            a[0].statement_start_date = s.start_date.replace(hour=0) 
+            a[0].statement_end_date = s.end_date.replace(hour=0)
+            a[0].statement_balance = s.balance 
+            a[0].statement_available_balance = s.available_balance
+            a[0].first_balance_date = s.start_date.replace(hour=0) 
 
             if a[1]:
                 a[0].current_balance = a[0].statement_balance
@@ -44,7 +50,9 @@ def ofx_processer(ofxfile, u):
 
         a[0].save()
 
-        first_t = Transaction.objects.filter(account=a[0]).order_by('date','order')
+        first_t = Transaction.objects.filter(
+            account=a[0]
+            ).order_by('date','order')
         
         if first_t:
             first_t = first_t[0]    
@@ -81,8 +89,16 @@ def ofx_processer(ofxfile, u):
             t.sic = tr.sic
             t.amount = tr.amount
             
+            #if the transaction is updated and the account isn't new, adjust
+            #the balance by any difference in the original transaciton record
             if not t_obj[1] and not a[1]:
-                a[0].current_balance += (t.amount + (t.amount-tr.amount))
+                a[0].current_balance += (t.amount-tr.amount))
+
+            #if the transaction is new, but the account is not, adjust the
+            #balance by the transaction amount
+            if t_obj[1] and not a[1]:
+                a[0].current_balance += t.amount
+
 
             try:
                 mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
@@ -90,7 +106,8 @@ def ofx_processer(ofxfile, u):
             except:
                 pass
             
-            #Set previous and next relationships as well as the OrderedModed order
+            #Set previous and next relationships 
+            #as well as the OrderedModed order
             
             if first_t:
                 if t.date < first_t.date and not prev_t:
@@ -98,7 +115,9 @@ def ofx_processer(ofxfile, u):
                     prev_t = t
 
             if not prev_t:    
-                prev_t = Transaction.objects.filter(date__lt=t.date).order_by('-date', '-order')
+                prev_t = Transaction.objects.filter(
+                    date__lt=t.date
+                    ).order_by('-date', '-order')
                 if prev_t:
                     prev_t = prev_t[0]
 
@@ -112,4 +131,5 @@ def ofx_processer(ofxfile, u):
             t.save()
             prev_t = t
 
+        a[0].save()
     return ofx_results
