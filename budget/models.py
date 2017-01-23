@@ -3,7 +3,6 @@ from django.db.models import Sum, Avg, Min, Max, StdDev, Variance, F, FloatField
 from django.conf import settings
 from django.contrib.humanize.templatetags.humanize import intcomma
 
-
 from dateutil.relativedelta import relativedelta
 
 from simple_history.models import HistoricalRecords
@@ -12,11 +11,7 @@ from django_extensions.db.models import (
 
 from ordered_model.models import OrderedModel
 
-
-
-
 #price_per_page=Sum(F('price')/F('pages'), output_field=FloatField()))
-
 
 #will need to initialize codes with from ofxparse.mcc import codes
 class MerchantCategoryCode(models.Model):
@@ -128,13 +123,31 @@ class Transaction(TimeStampedModel, OrderedModel):
     amount = models.DecimalField(
         max_digits=8, decimal_places=2, blank=True, null=True)
 
+    transaction_balance = models.DecimalField(
+        max_digits=8, decimal_places=2, blank=True, null=True)
+
     order_with_respect_to = 'account'
 
     class Meta(OrderedModel.Meta):
         pass
 
+    @property
+    def formatted_amount(self):
+        return '%s%s' % (
+            intcomma(int(self.amount)), 
+            ("%0.2f" % self.amount)[-3:])        
+    
+    @property
+    def formatted_transaction_balance(self):
+        return '%s%s' % (
+            intcomma(int(self.transaction_balance)), 
+            ("%0.2f" % self.transaction_balance)[-3:])
+
     def __str__(self):
-        return '%s\t%s\t%s' % (self.date, self.payee, self.amount)
+        return '%s\t%s\t%s\t%s' % (
+            self.date, self.payee, self.amount, self.transaction_balance)
+
+
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=255)

@@ -64,19 +64,23 @@ def ofx_processer(ofxfile, u):
         next_t = None
 
         transactions = ofx.account.statement.transactions
+
+        #add a transaction_balance value to each transaction
+        #originating from the statement balance
         
+        for tr in transactions:
+            tr.transaction_balance = s.balance
+            s.balance -= tr.amount
+
         transactions.reverse()
-        for tr in ofx.account.statement.transactions:
+        
+        for tr in transactions:
             tr.date = tr.date.replace(hour=0)
             t_obj = Transaction.objects.get_or_create(
                 account = a[0],
                 date = tr.date,
                 number = tr.id
             )
-            if t_obj[1]:
-                ofx_results['new_transactions'].append(t_obj[0])
-            else:
-                ofx_results['updated_transactions'].append(t_obj[0])
             
             t = t_obj[0]
             t.transaction_type = tr.type
@@ -89,14 +93,16 @@ def ofx_processer(ofxfile, u):
 
             t.sic = tr.sic
             t.amount = tr.amount
-            
+            t.transaction_balance = tr.transaction_balance
+
             #if the transaction is updated and the account isn't new, adjust
             #the balance by any difference in the original transaciton record
             if not t_obj[1] and not a[1]:
                 a[0].current_balance += (t.amount-tr.amount)
                 
-            #if the transaction is new, but the account is not, adjust the
-            #balance by the transaction amount
+            #if the transaction is new and is after the most recent balance date
+            #but the account is not, adjust the balance by the 
+            #transaction amount
             if t_obj[1] and tr.date >= a[0].current_balance_date and not a[1]:
                 a[0].current_balance += t.amount
                 a[0].current_balance_date = t.date
@@ -108,8 +114,7 @@ def ofx_processer(ofxfile, u):
                 pass
             
             #Set previous and next relationships 
-            #as well as the OrderedModed order
-            
+            #as well as the OrderedModed order            
             if first_t:
                 if t.date < first_t.date and not prev_t:
                     t.above(first_t)            
@@ -131,6 +136,11 @@ def ofx_processer(ofxfile, u):
                 prev_t = None
             t.save()
             prev_t = t
-        
+
+            if t_obj[1]:
+                ofx_results['new_transactions'].append(t_obj[0])
+            else:
+                ofx_results['updated_transactions'].append(t_obj[0])
+
         a[0].save()
     return ofx_results

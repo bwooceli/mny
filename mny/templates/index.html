@@ -3,14 +3,19 @@
 
 
 {% block content %}
-<div class="generic-content">
-        
-        {% if user.is_authenticated %}
-        <h2>{% if user.first_name %}{{ user.first_name }}{% else %}{{ user }}{% endif %} is winning</h2>
-        <p><a href="{% url 'budget:ofx_upload' %}">Upload an ofx_file</a></p>
-        {% else %}
-        <h1>Adulting can be hard.</h1>
-        {% endif %}
+<div class="generic-content">  
+    {% if user.is_authenticated %}
+      {% if accounts %}<p>Accounts</p>
+        <ul>{% for account in accounts %}
+                <li>{{ account }}</li>
+        {% endfor %}</ul>
+        {% else %}<p>You have no accounts setup</p>
+      {% endif %}
+      <p><a href="{% url 'budget:ofx_upload' %}">Upload an ofx_file</a></p>
+          
+    {% else %}
+        <h1>You're not logged in.  <a href="{% url 'login' %}">So log in :)</a></h1>
+    {% endif %}
         
 </div>
 {% endblock %}
