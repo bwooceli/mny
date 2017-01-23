@@ -10,6 +10,8 @@ class TransactionAdmin(OrderedModelAdmin):
     #list_display can also have 'move_up_down_links')
     list_display = ('date', 'payee','memo', 'formatted_amount',
                     'formatted_transaction_balance', 'order')
+    list_filter = ('account',)
+    search_fields = ['payee']
 
 admin.site.register(Transaction, TransactionAdmin)
 
@@ -35,7 +37,7 @@ class MerchantCategoryCodeAdmin(admin.ModelAdmin):
 
 admin.site.register(MerchantCategoryCode, MerchantCategoryCodeAdmin)
 
-#Generica register everything else to admin
+#Generic register everything else to admin
 app = apps.get_app_config('budget')
 for model_name, model in app.models.items():
     if not admin.site.is_registered(model):
