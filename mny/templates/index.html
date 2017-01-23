@@ -7,7 +7,10 @@
     {% if user.is_authenticated %}
       {% if accounts %}<p>Accounts</p>
         <ul>{% for account in accounts %}
-                <li>{{ account }}</li>
+                <li>{{ account }}</li>{% for budget in account.budget_set.all %}
+                  <ul>
+                    <li>{{ budget }}</li>
+                  </ul>{% endfor %}
         {% endfor %}</ul>
         {% else %}<p>You have no accounts setup</p>
       {% endif %}

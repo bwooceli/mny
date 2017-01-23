@@ -184,7 +184,9 @@ class PayeeXref(models.Model):
 class BudgetReserve(models.Model):
     budget = models.ForeignKey(Budget)
     
-    title = models.CharField(max_length=255)
+    title = models.CharField(
+        help_text = 'Eg. Christmas 2017, Buick Maintenence, '
+        ,max_length=255)
     target_amount = models.DecimalField(
         max_digits=8, decimal_places=2, blank=True, null=True)
 
@@ -194,14 +196,25 @@ class BudgetItem(TimeStampedModel):
     payee = models.ForeignKey(PayeeXref, blank=True, null=True)
     
     budget_item_date = models.DateTimeField(
-        help_text='Projected date for allocation', blank=True)
+        help_text='Projected date for allocation', 
+        blank=True, 
+        null=True)
     budget_item_enddate = models.DateTimeField(
-        help_text='If a ranged budget item, provide an end date', blank=True)
+        help_text='If a ranged budget item, provide an end date', 
+        blank=True,
+        null=True)
 
     enforce_due_date = models.BooleanField(
         help_text='Rigid scheduling of budget item date in cashflow')
 
-    reserve = models.ForeignKey(BudgetReserve, blank=True)
+    #in a cash flow, tells how much money COULD be spent on an item based
+    #on the amount that has been "saved" by not allocating the full 
+    #BudgetItem amount.  
+    reserve = models.ForeignKey(BudgetReserve,
+        help_text='Specify to apply unused amounts or over-uses to a reserve',
+        blank=True,
+        null=True)
+
     category = models.ForeignKey(Category)
 
     target_amount = models.DecimalField(max_digits=8, decimal_places=2)

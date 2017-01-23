@@ -31,3 +31,7 @@ def ofx_upload_view(request):
         'ofx_upload.html',
         context
     )
+
+@login_required
+def budget_home(request):
+    pass
