@@ -21,7 +21,8 @@ class CategoryInline(admin.TabularInline):
     extra = 0
 
 class CategoryAdmin(admin.ModelAdmin):
-    inlines = [CategoryInline,
+    inlines = [
+        CategoryInline,
     ]
 
     def get_queryset(self, request):
@@ -29,6 +30,18 @@ class CategoryAdmin(admin.ModelAdmin):
         return qs.filter(parent__isnull=True)
 
 admin.site.register(Category, CategoryAdmin)
+
+
+class BudgetItemInline(admin.TabularInline):
+    model = BudgetItem
+    extra = 0
+
+class BudgetPayeeAdmin(admin.ModelAdmin):
+    inlines = [
+        BudgetItemInline,
+    ]
+
+admin.site.register(BudgetPayee, BudgetPayeeAdmin)
 
 #MCC Admin
 class MerchantCategoryCodeAdmin(admin.ModelAdmin):

@@ -14,6 +14,10 @@ from ordered_model.models import OrderedModel
 #price_per_page=Sum(F('price')/F('pages'), output_field=FloatField()))
 
 #will need to initialize codes with from ofxparse.mcc import codes
+
+def dec_to_dollar_fmt(v):
+    return '$%s%s' % (intcomma(int(v)), ("%0.2f" % v)[-3:])
+
 class MerchantCategoryCode(models.Model):
     mcc_id = models.IntegerField(primary_key=True)
     mcc_combined_description = models.TextField(max_length=255, blank=True)
@@ -78,22 +82,16 @@ class Account(TimeStampedModel):
 
     @property
     def formatted_statement_balance(self):
-        return '%s%s' % (
-            intcomma(int(self.statement_balance)), 
-            ("%0.2f" % self.statement_balance)[-3:])
+        return dec_to_dollar_fmt(self.statement_balance)
 
     @property
     def formatted_statement_available_balance(self):
-        return '%s%s' % (
-            intcomma(int(self.statement_balance)), 
-            ("%0.2f" % self.statement_balance)[-3:])
+        return dec_to_dollar_fmt(self.statement_balance)
 
     @property
     def formatted_current_balance(self):
         if self.current_balance:
-            return '%s%s' % (
-                intcomma(int(self.current_balance)), 
-                ("%0.2f" % self.current_balance)[-3:])
+            return dec_to_dollar_fmt(self.current_balance)
         return '0.00'
 
     def __str__(self):
@@ -104,8 +102,6 @@ class Account(TimeStampedModel):
             self.account_type.description, 
             self.formatted_current_balance)
 
-    
-
 class Transaction(TimeStampedModel, OrderedModel):
     account = models.ForeignKey(Account)
 
@@ -113,7 +109,8 @@ class Transaction(TimeStampedModel, OrderedModel):
     number = models.CharField(max_length=255)
     transaction_type = models.CharField(max_length=10, blank=True)
 
-    payee = models.CharField(max_length=255, blank=True)
+    payee = models.CharField(help_text="Payee entry from the Bank",
+        max_length=255, blank=True)
     memo = models.CharField(max_length=255, blank=True)
     checknum = models.IntegerField(blank=True, null=True)
 
@@ -133,15 +130,11 @@ class Transaction(TimeStampedModel, OrderedModel):
 
     @property
     def formatted_amount(self):
-        return '%s%s' % (
-            intcomma(int(self.amount)), 
-            ("%0.2f" % self.amount)[-3:])        
+        return dec_to_dollar_fmt(self.amount)     
     
     @property
     def formatted_transaction_balance(self):
-        return '%s%s' % (
-            intcomma(int(self.transaction_balance)), 
-            ("%0.2f" % self.transaction_balance)[-3:])
+        return dec_to_dollar_fmt(self.transaction_balance)
 
     def __str__(self):
         return '%s\t%s\t%s\t%s' % (
@@ -171,29 +164,44 @@ class Budget(TimeStampedModel):
 
     account = models.ForeignKey(Account)
 
+    def __str__(self):
+        return self.name
+
 class BudgetItemStatus(models.Model):
     message = models.CharField(max_length=255)
 
     class Meta:
         verbose_name_plural = 'budget item statuses'
         
-class PayeeXref(models.Model):
+class BudgetPayee(models.Model):
     name = models.CharField(max_length=255)
-    transaction = models.ManyToManyField(Transaction)
+    account_site = models.URLField(
+        help_text='account management site', 
+        blank=True)
+    account_notes = models.TextField(
+        help_text='',
+        blank=True)
+
+    def __str__(self):
+        return self.name
 
 class BudgetReserve(models.Model):
+    '''Target a Budget Reserve to "hold" unspent money from budget items'''
     budget = models.ForeignKey(Budget)
     
     title = models.CharField(
-        help_text = 'Eg. Christmas 2017, Buick Maintenence, '
-        ,max_length=255)
+        help_text = 'Eg. Christmas 2017, Buick Maintenence, Tesla Fund',
+        max_length=255)
+    
     target_amount = models.DecimalField(
-        max_digits=8, decimal_places=2, blank=True, null=True)
+        max_digits=8, decimal_places=2, 
+        blank=True, 
+        null=True)
 
 
 class BudgetItem(TimeStampedModel):
     budget = models.ForeignKey(Budget)
-    payee = models.ForeignKey(PayeeXref, blank=True, null=True)
+    payee = models.ForeignKey(BudgetPayee, blank=True, null=True)
     
     budget_item_date = models.DateTimeField(
         help_text='Projected date for allocation', 
@@ -210,7 +218,7 @@ class BudgetItem(TimeStampedModel):
     #in a cash flow, tells how much money COULD be spent on an item based
     #on the amount that has been "saved" by not allocating the full 
     #BudgetItem amount.  
-    reserve = models.ForeignKey(BudgetReserve,
+    budget_reserve = models.ForeignKey(BudgetReserve,
         help_text='Specify to apply unused amounts or over-uses to a reserve',
         blank=True,
         null=True)
@@ -219,9 +227,15 @@ class BudgetItem(TimeStampedModel):
 
     target_amount = models.DecimalField(max_digits=8, decimal_places=2)
 
-    notes = models.CharField(max_length=255)
+    notes = models.CharField(max_length=255, blank=True)
 
-    status = models.ForeignKey(BudgetItemStatus)
+    status = models.ForeignKey(BudgetItemStatus, blank=True, null=True)
+
+    def __str__(self):
+        return '%s\t%s\t$%s' % (
+            self.budget_item_date.strftime('%Y-%m-%d'),
+            self.payee, 
+            self.target_amount)
 
     def enddate_offset(self, *args, **kwargs):
         '''Pass offset_days, offset_months, and offset_years as 
