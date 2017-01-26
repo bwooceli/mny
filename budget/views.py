@@ -2,6 +2,8 @@
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
+
 
 from ofxparse import OfxParser
 
@@ -35,3 +37,5 @@ def ofx_upload_view(request):
 @login_required
 def budget_home(request):
     pass
+
+  

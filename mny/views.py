@@ -1,8 +1,5 @@
 from django.views.generic.base import TemplateView
 
-
-from budget.models import Account
-
 class HomeView(TemplateView):
 
     template_name = 'index.html'
@@ -14,3 +11,6 @@ class HomeView(TemplateView):
                 owner=self.request.user)
         
         return context
+
+
+
