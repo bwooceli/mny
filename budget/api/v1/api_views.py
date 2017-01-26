@@ -29,5 +29,5 @@ class TransactionViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows Transaction objects to be viewed or edited.
     """
-    queryset = Transaction.objects.all()
+    queryset = Transaction.objects.all().order_by('order')
     serializer_class = TransactionSerializer      
