@@ -4,6 +4,8 @@ from django.conf import settings
 from django.contrib.humanize.templatetags.humanize import intcomma
 
 from dateutil.relativedelta import relativedelta
+from recurrent import RecurringEvent
+from dateutil import rrule
 
 from simple_history.models import HistoricalRecords
 from django_extensions.db.models import (
@@ -16,7 +18,10 @@ from ordered_model.models import OrderedModel
 #will need to initialize codes with from ofxparse.mcc import codes
 
 def dec_to_dollar_fmt(v):
-    return '$%s%s' % (intcomma(int(v)), ("%0.2f" % v)[-3:])
+    try:
+        return '$%s%s' % (intcomma(int(v)), ("%0.2f" % v)[-3:])
+    except:
+        return ''
 
 class MerchantCategoryCode(models.Model):
     mcc_id = models.IntegerField(primary_key=True)
@@ -231,26 +236,81 @@ class BudgetItem(TimeStampedModel):
 
     status = models.ForeignKey(BudgetItemStatus, blank=True, null=True)
 
+    class Meta:
+        ordering = ('budget_item_date',)
+
     def __str__(self):
         return '%s\t%s\t$%s' % (
             self.budget_item_date.strftime('%Y-%m-%d'),
             self.payee, 
             self.target_amount)
 
-    def enddate_offset(self, *args, **kwargs):
-        '''Pass offset_days, offset_months, and offset_years as 
-        arguments to set the range end'''
-        r = self.budget_item_date
-        r = ( r  
-            + relativedelta(days=kwargs.get('offset_days') or 0) 
-            + relativedelta(months=kwargs.get('offset_months') or 0)
-            + relativedelta(years=kwargs.get('offset_years') or 0) 
-        )
-        r.second = 0
-        r.microsecond = 0
-        self.budget_item_enddate = r
-        self.save()
-        
+    @property
+    def formatted_amount(self):
+        return dec_to_dollar_fmt(self.target_amount)     
+
+    def get_future_like_items(self):
+        q = BudgetItem.objects.filter(
+            budget_item_date__gte = self.budget_item_date
+        ).filter(
+            budget = self.budget
+        ).filter(
+            payee = self.payee
+        ).exclude(pk = self.pk)
+        return q        
+
+    def delete_future(self):
+        q = self.get_future_like_items()
+        q.delete()
+
+    def update_future_target_amount(self, new_amount):
+        if isinstance(new_amount, (int, float)):
+            q = self.get_future_like_items()
+            q.update(target_amount = new_amount) 
+
+    def update_future_payee(self, new_payee):
+        if isinstance(new_payee, (BudgetPayee)):
+            q = self.get_future_like_items()
+            q.update(payee = new_payee)     
+
+    def generate_recurring(self, phrase):
+        '''Takes a plain ENGLISH phrase and creates the future recurring 
+        BudgetItems.  Phrase can be "every week until November" for example.
+        Returns number i of BudgetItems added.
+        THIS DELETES ALL EXISTING FUTURE INSTANCES FOR THE PAYEE'''
+
+        self.delete_future()
+        start_date = self.budget_item_date
+        i = 1
+        r = RecurringEvent(now_date = self.budget_item_date)
+        r.parse(phrase)
+        d = None
+        if r.freq:
+            rr = rrule.rrulestr(r.get_RFC_rrule())
+            for rd in rr:
+                d = rd.replace(hour = 0, minute = 0, second=0, microsecond=0)            
+                if (d-start_date).days > 0 and (
+                    (d-start_date).days < 1460 or i < 5
+                ):
+                    if self.budget_item_enddate:
+                        delta = (
+                            self.budget_item_enddate - self.budget_item_date
+                        ) 
+                    #print(d)                                    
+                    self.budget_item_date = d
+                    
+                    if self.budget_item_enddate:
+                        self.budget_item_enddate = d + delta
+                    
+                    self.pk = None
+                    self.save()
+                    i += 1
+                if (d-start_date).days > 1460 and i > 5:
+                    break
+        return i
+
+
+
 class TransactionAllocation(models.Model):
     transaction = models.ForeignKey(Transaction)
     amount = models.DecimalField(max_digits=8, decimal_places=2)

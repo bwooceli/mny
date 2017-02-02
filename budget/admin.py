@@ -10,8 +10,9 @@ class TransactionAdmin(OrderedModelAdmin):
     #list_display can also have 'move_up_down_links')
     list_display = ('date', 'payee','memo', 'formatted_amount',
                     'formatted_transaction_balance', 'order')
-    list_filter = ('account',)
+    list_filter = ('account__nickname',)
     search_fields = ['payee']
+    ordering = ('-date',)
 
 admin.site.register(Transaction, TransactionAdmin)
 
@@ -31,6 +32,12 @@ class CategoryAdmin(admin.ModelAdmin):
 
 admin.site.register(Category, CategoryAdmin)
 
+class BudgetItemAdmin(admin.ModelAdmin):
+    search_fields = ['payee__name',]
+    list_display = ('budget_item_date', 'payee', 'formatted_amount')
+    list_filter = ['budget__owner__username','budget__name',]
+
+admin.site.register(BudgetItem, BudgetItemAdmin)
 
 class BudgetItemInline(admin.TabularInline):
     model = BudgetItem
