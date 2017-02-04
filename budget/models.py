@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from recurrent import RecurringEvent
 from dateutil import rrule
 
-from simple_history.models import HistoricalRecords
+#from simple_history.models import HistoricalRecords
 from django_extensions.db.models import (
     TitleSlugDescriptionModel, TimeStampedModel)
 
@@ -236,6 +236,13 @@ class BudgetItem(TimeStampedModel):
 
     status = models.ForeignKey(BudgetItemStatus, blank=True, null=True)
 
+    recurring_base_item = models.ForeignKey(
+        'self', 
+        blank=True, 
+        null=True, 
+        related_name = 'series_items'
+    )
+
     class Meta:
         ordering = ('budget_item_date',)
 
@@ -261,8 +268,24 @@ class BudgetItem(TimeStampedModel):
         ).exclude(pk = self.pk)
         return q        
 
-    def delete_future(self):
+    def get_future_in_series(self):
+        q = None
+        if self.recurring_base_item:
+            q = BudgetItem.objects.filter(
+                recurring_base_itme = self.recurring_base_item
+            ).filter(
+                budget_item_date__gte = self.budget_item_date
+            ).exclude(
+                pk = self.pk
+            )     
+        return q   
+
+    def delete_future_like_items(self):
         q = self.get_future_like_items()
+        q.delete()
+
+    def delete_future_in_series(self):
+        q = self.get_future_in_series()
         q.delete()
 
     def update_future_target_amount(self, new_amount):
@@ -275,13 +298,18 @@ class BudgetItem(TimeStampedModel):
             q = self.get_future_like_items()
             q.update(payee = new_payee)     
 
+    def update_future_series_target_amount(self):
+        q = self.get_future_in_series()
+        q.update(target_amount = self.target_amount)
+
     def generate_recurring(self, phrase):
         '''Takes a plain ENGLISH phrase and creates the future recurring 
         BudgetItems.  Phrase can be "every week until November" for example.
         Returns number i of BudgetItems added.
-        THIS DELETES ALL EXISTING FUTURE INSTANCES FOR THE PAYEE'''
+        THIS DELETES ALL EXISTING FUTURE INSTANCES IN THE SERIES'''
 
-        self.delete_future()
+        self.delete_future_in_series()
+
         start_date = self.budget_item_date
         i = 1
         r = RecurringEvent(now_date = self.budget_item_date)

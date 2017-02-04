@@ -27,7 +27,7 @@ admin.site.site_header = 'Adulting Win!'
 urlpatterns = [
     url(r'^$', views.HomeView.as_view(), name='home'),
 
-    
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'^auth/', include('django.contrib.auth.urls')),
 

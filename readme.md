@@ -4,5 +4,8 @@
 
 * ofxparse
 * django_extensions
-* django-simple-history
 * dateutil
+* [recurrent (modified for python 3)][1]
+* docutils
+
+[1]: https://github.com/bwooceli/recurrent
