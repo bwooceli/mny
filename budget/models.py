@@ -100,7 +100,7 @@ class Account(TimeStampedModel):
         return '0.00'
 
     def __str__(self):
-        return '%s %s %s %s: $%s' % (
+        return '%s %s %s %s: %s' % (
             self.owner, 
             self.number, 
             self.nickname, 
@@ -184,7 +184,7 @@ class BudgetPayee(models.Model):
         help_text='account management site', 
         blank=True)
     account_notes = models.TextField(
-        help_text='',
+        help_text='details about your account with this payee',
         blank=True)
 
     def __str__(self):
@@ -240,7 +240,7 @@ class BudgetItem(TimeStampedModel):
         ordering = ('budget_item_date',)
 
     def __str__(self):
-        return '%s\t%s\t$%s' % (
+        return '%s\t%s\t%s' % (
             self.budget_item_date.strftime('%Y-%m-%d'),
             self.payee, 
             self.target_amount)
@@ -256,6 +256,8 @@ class BudgetItem(TimeStampedModel):
             budget = self.budget
         ).filter(
             payee = self.payee
+        ).filter(
+            category = self.category
         ).exclude(pk = self.pk)
         return q        
 

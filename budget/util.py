@@ -21,38 +21,39 @@ def ofx_processer(ofxfile, u):
                 account_type = int(ofa.type),
                 description = ofa.account_type
                 )[0]
-        a = Account.objects.get_or_create(
+        aa = Account.objects.get_or_create(
             owner = u,
             number = ofa.number,
             routing_number = ofa.routing_number,
             branch_id = ofa.branch_id,
             account_type = actype,
-            curdef = ofa.curdef,
-            institution = str(ofa.institution)
+            curdef = ofa.curdef
         )
-        
+        a = aa[0]        
+        new_acct = aa[1]
         #update the statement details if they are newer than valie in database
         s = ofx.account.statement
-        if a[1] or a[0].statement_end_date < s.end_date:
-            a[0].statement_start_date = s.start_date.replace(hour=0) 
-            a[0].statement_end_date = s.end_date.replace(hour=0)
-            a[0].statement_balance = s.balance 
-            a[0].statement_available_balance = s.available_balance
-            a[0].first_balance_date = s.start_date.replace(hour=0) 
+        if new_acct or a.statement_end_date < s.end_date:
+            a.statement_start_date = s.start_date.replace(hour=0) 
+            a.statement_end_date = s.end_date.replace(hour=0)
+            a.statement_balance = s.balance 
+            a.statement_available_balance = s.available_balance
+            a.first_balance_date = s.start_date.replace(hour=0) 
+            a.institution = str(ofa.institution)
 
-            if a[1]:
-                a[0].current_balance = a[0].statement_balance
-                a[0].current_balance_date = a[0].statement_end_date
+            if new_acct:
+                a.current_balance = a.statement_balance
+                a.current_balance_date = a.statement_end_date
 
-        if a[1]:
-            ofx_results['new_accounts'].append(a[0])
+        if new_acct:
+            ofx_results['new_accounts'].append(a)
         else:
-            ofx_results['updated_accounts'].append(a[0])
+            ofx_results['updated_accounts'].append(a)
 
-        a[0].save()
+        a.save()
 
         first_t = Transaction.objects.filter(
-            account=a[0]
+            account=a
             ).order_by('date','order')
         
         if first_t:
@@ -77,7 +78,7 @@ def ofx_processer(ofxfile, u):
         for tr in transactions:
             tr.date = tr.date.replace(hour=0)
             t_obj = Transaction.objects.get_or_create(
-                account = a[0],
+                account = a,
                 date = tr.date,
                 number = tr.id
             )
@@ -97,15 +98,15 @@ def ofx_processer(ofxfile, u):
 
             #if the transaction is updated and the account isn't new, adjust
             #the balance by any difference in the original transaciton record
-            if not t_obj[1] and not a[1]:
-                a[0].current_balance += (t.amount-tr.amount)
+            if not t_obj[1] and not new_acct:
+                a.current_balance += (t.amount-tr.amount)
                 
             #if the transaction is new and is after the most recent balance date
             #but the account is not, adjust the balance by the 
             #transaction amount
-            if t_obj[1] and tr.date >= a[0].current_balance_date and not a[1]:
-                a[0].current_balance += t.amount
-                a[0].current_balance_date = t.date
+            if t_obj[1] and tr.date >= a.current_balance_date and not new_acct:
+                a.current_balance += t.amount
+                a.current_balance_date = t.date
 
             try:
                 mcc = MerchantCategoryCode.objects.get(mcc_id=int(tr.mcc))
@@ -142,5 +143,5 @@ def ofx_processer(ofxfile, u):
             else:
                 ofx_results['updated_transactions'].append(t_obj[0])
 
-        a[0].save()        
+        a.save()        
     return ofx_results
